@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    match /outages/{outageId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'active';
+      allow update: if signedIn()
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if signedIn();
+    }
+
+    match /subscribers/{subscriberId} {
+      allow create: if request.resource.data.keys().hasAll(['zoneId', 'fcmToken', 'createdAt'])
+        && request.resource.data.zoneId is string
+        && request.resource.data.fcmToken is string
+        && request.resource.data.fcmToken.size() > 0;
+      allow read, update, delete: if signedIn();
+    }
+  }
+}
