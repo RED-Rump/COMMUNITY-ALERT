@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { collection, query } from "firebase/firestore";
 import { signOut as firebaseSignOut } from "firebase/auth";
 import { ArrowUpRight, Bell, Droplets, Shield, Zap } from "lucide-react";
 import ProtectedRoute from "./admin/ProtectedRoute";
+import AdminShell from "./admin/AdminShell";
+import { AlertHistoryView, ZonesView } from "./admin/AdminDataViews";
 import AlertComposer from "./admin/AlertComposer";
 import ActiveOutagesList from "./admin/ActiveOutagesList";
 import ZoneSelector from "./resident/ZoneSelector";
@@ -47,23 +49,53 @@ function ResidentApp() {
 function AdminDashboard({ user }) {
   const zonesQuery = useMemo(() => db ? query(collection(db, "zones")) : null, []);
   const { documents: zones, loading, error } = useCollection(zonesQuery, [zonesQuery]);
+  const [activeSection, setActiveSection] = useState("create");
+  const [browserOnline, setBrowserOnline] = useState(navigator.onLine);
+  const [signOutError, setSignOutError] = useState("");
+
+  useEffect(() => {
+    function updateOnlineStatus() {
+      setBrowserOnline(navigator.onLine);
+    }
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
 
   async function signOut() {
-    await firebaseSignOut(auth);
+    setSignOutError("");
+    try {
+      await firebaseSignOut(auth);
+    } catch (signOutFailure) {
+      setSignOutError(`Could not sign out: ${signOutFailure.message}`);
+    }
   }
 
   return (
-    <div className="admin-page">
-      <header className="topbar admin-topbar"><Brand admin /><a className="admin-link" href="/">Resident view <ArrowUpRight size={14} /></a><button className="signout-button" type="button" onClick={signOut}>Sign out</button></header>
-      <main className="admin-main">
-        <div className="admin-welcome"><div><p className="eyebrow">COMMUNITY OPERATIONS</p><h1>Good morning.</h1><p>Keep your neighbors informed with clear, timely updates.</p></div><div className="admin-avatar">{user.email?.slice(0, 1).toUpperCase() ?? "A"}</div></div>
-        {firebaseError && <p className="notice notice-warning">{firebaseError}</p>}
-        {error && <p className="notice notice-error">Could not load neighborhoods: {error}</p>}
-        {!loading && zones.length === 0 && !error && <p className="notice notice-warning">No neighborhoods yet. Add zone documents in Firestore with a <code>name</code> field before posting an update.</p>}
-        <div className="admin-grid"><AlertComposer zones={zones} user={user} /><ActiveOutagesList zones={zones} /></div>
-        <p className="admin-account">Signed in as {user.email}</p>
-      </main>
-    </div>
+    <AdminShell
+      user={user}
+      activeSection={activeSection}
+      onNavigate={setActiveSection}
+      online={browserOnline && !loading && !error && !firebaseError}
+      onSignOut={signOut}
+    >
+      {firebaseError && <p className="notice notice-warning">{firebaseError}</p>}
+      {signOutError && <p className="notice notice-error" role="alert">{signOutError}</p>}
+      {error && <p className="notice notice-error" role="alert">Could not load neighborhoods: {error}</p>}
+      {!loading && zones.length === 0 && !error && !firebaseError && <p className="notice notice-warning">No neighborhoods yet. Add zone documents in Firestore with a <code>name</code> field before publishing.</p>}
+      {activeSection === "create" && <AlertComposer zones={zones} user={user} />}
+      {activeSection === "active" && (
+        <>
+          <div className="admin-content-heading"><div><p className="eyebrow">COMMUNITY OPERATIONS</p><h1>Active outages</h1><p>Monitor current service updates and resolve them when service returns.</p></div></div>
+          <ActiveOutagesList zones={zones} />
+        </>
+      )}
+      {activeSection === "zones" && <ZonesView zones={zones} loading={loading} />}
+      {activeSection === "history" && <AlertHistoryView zones={zones} />}
+    </AdminShell>
   );
 }
 

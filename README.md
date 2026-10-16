@@ -22,7 +22,7 @@ The initial build covers the demoable core: Firebase setup, admin sign-in, outag
 6. In Firestore, create a `zones` collection and add 3–5 documents with a `name` field (for example: `Northside`, `Riverside`, `Central`).
 7. Create an admin user in Firebase Authentication, then open `/admin` and sign in.
 
-Residents can open `/` and select their neighborhood. Firestore listeners keep the resident status and admin outage list in sync. Marking an outage resolved changes its status and displays the restored-service state to residents.
+Residents can open `/` and select their neighborhood. Firestore listeners keep the resident status and admin outage list in sync. Admins can select multiple zones when composing an alert; the app publishes one outage record per zone so resident status lookups stay scoped to a single neighborhood. Publishing requires a review and confirmation. Alert drafts are autosaved in the signed-in staff member's browser and are not synced across devices. Selecting **Resolved** publishes a resolved status immediately.
 
 ## Firebase rules and hosting
 
@@ -37,5 +37,5 @@ The Firebase API configuration in `.env` is a public client configuration, not a
 ## Data
 
 - `zones`: `{ name, createdAt }`
-- `outages`: zone, utility, severity, message and variant, status, timestamps, and creator UID
+- `outages`: one document per zone, with zone, utility, severity, message and variant, status, timestamps, and creator UID
 - `subscribers`: reserved for the FCM milestone

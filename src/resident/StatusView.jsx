@@ -32,7 +32,7 @@ export default function StatusView({ zone }) {
       <div className={`utility-illustration ${outage.utilityType}`} aria-hidden="true">{outage.utilityType === "water" ? <Droplets size={24} /> : <Zap size={24} />}</div>
       <p className="eyebrow">{outage.utilityType === "water" ? "WATER SERVICE" : "POWER SERVICE"} · {isResolved ? "RESTORED" : "SERVICE UPDATE"}</p>
       <h2>{isResolved ? "Service is back on" : `${outage.utilityType === "water" ? "Water" : "Power"} ${outage.severity === "scheduled" ? "work is planned" : "interruption reported"}`}</h2>
-      {outage.cause && <p className="cause-text">{outage.cause}</p>}
+      {outage.cause && !outage.messageIncludesCause && <p className="cause-text">{outage.cause}</p>}
       <p className="alert-message">{outage.message}</p>
       {!isResolved && outage.estimatedRestoration && <div className="restoration-time"><Clock3 size={17} /><span><small>ESTIMATED RESTORATION</small><strong>{formatDate(outage.estimatedRestoration)}</strong></span></div>}
       {isResolved && outage.resolvedAt && <p className="resolved-time">Resolved {formatDate(outage.resolvedAt)}</p>}

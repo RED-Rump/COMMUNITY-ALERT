@@ -25,7 +25,11 @@ export default function ActiveOutagesList({ zones }) {
     }
   }
 
-  const sorted = [...outages].sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+  const severityRank = { emergency: 0, scheduled: 1 };
+  const sorted = [...outages].sort((a, b) =>
+    (severityRank[a.severity] ?? 2) - (severityRank[b.severity] ?? 2)
+    || (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0),
+  );
 
   return (
     <section className="panel outages-panel">
@@ -46,7 +50,7 @@ export default function ActiveOutagesList({ zones }) {
                 <SeverityBadge severity={outage.severity} />
               </div>
               <h3>{zoneNames.get(outage.zoneId) ?? "Unknown neighborhood"}</h3>
-              {outage.cause && <p className="cause-text">{outage.cause}</p>}
+              {outage.cause && !outage.messageIncludesCause && <p className="cause-text">{outage.cause}</p>}
               <p className="outage-message">{outage.message}</p>
               {outage.estimatedRestoration && <p className="meta-line"><Clock3 size={14} /> Expected back {formatDate(outage.estimatedRestoration)}</p>}
               <div className="outage-footer"><span>Posted {formatDate(outage.createdAt)}</span><button className="button button-subtle" type="button" onClick={() => markResolved(outage.id)}><Check size={15} /> Mark resolved</button></div>
